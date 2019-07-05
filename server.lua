@@ -1,6 +1,7 @@
 local http = require('http.server')
 local json = require("json")
 local log = require('log')
+local crypto = require('crypto')
 
 local function unauthorized()
     return {
@@ -17,6 +18,8 @@ local function authorize(req)
         log.error('[%s] Nav norādīts ApiKey', req.peer.host)
         return unauthorized()
     end
+
+    apikey = crypto.digest.sha256(apikey)
 
     local client = box.execute("SELECT * FROM clients WHERE apikey=?", { apikey })
     

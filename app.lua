@@ -1,5 +1,7 @@
 #!/usr/bin/tarantool
 
+local crypto = require('crypto')
+
 box.cfg{
    listen = 3302;
    memtx_memory = 512 * 1024 * 1024; -- 512MB
@@ -7,9 +9,11 @@ box.cfg{
 
 box.schema.user.passwd('admin', '123')
 
---box.execute('DROP TABLE clients')
---box.execute('CREATE TABLE clients (apikey VARCHAR(16) NOT NULL PRIMARY KEY, name VARCHAR(100) NOT NULL, enabled INTEGER NOT NULL)')
---box.execute("INSERT INTO clients VALUES ('1234567812345678', 'testa_klients', 1)")
+--print(crypto.digest.sha256('1234567812345678'))
+
+box.execute('DROP TABLE IF EXISTS clients')
+box.execute('CREATE TABLE clients (apikey VARCHAR(32) PRIMARY KEY, name VARCHAR(100), enabled INTEGER)')
+box.execute("INSERT INTO clients VALUES (?, 'testa_klients', 1)", { crypto.digest.sha256('1234567812345678') })
 --box.execute("UPDATE clients SET enabled=0 WHERE apikey='1234567812345678'")
 
 require 'server'
