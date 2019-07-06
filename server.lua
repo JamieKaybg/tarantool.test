@@ -1,7 +1,8 @@
 local http = require('http.server')
 local json = require("json")
 local log = require('log')
-local crypto = require('crypto')
+--local crypto = require('crypto')
+local client = require 'client'
 
 local function unauthorized()
     return {
@@ -19,16 +20,17 @@ local function authorize(req)
         return unauthorized()
     end
 
-    apikey = crypto.digest.sha256(apikey)
-
-    local client = box.execute("SELECT * FROM clients WHERE apikey=?", { apikey })
+    --apikey = crypto.digest.sha256(apikey)
+    local params = {}
+    params[1] = apikey
+    local client = box.execute("SELECT * FROM clients WHERE apikey=$1", params)
     
     if client.rows[1] == nil then
         log.error('[%s] ApiKey %s neeksistē', req.peer.host, apikey)
         return unauthorized()
     end
 
-    if client.rows[1][3] == 0 then
+    if client.rows[1][client.ENABLED] == 0 then
         log.error('[%s] Klients %s ir atspējots', req.peer.host, client.rows[1][2])
         return unauthorized()
     end
@@ -44,7 +46,7 @@ local function home_handler(req)
     if auth_result.status ~= 200 then
         return auth_result
     end
-    local result = { dati = auth_result }
+    local result = { dati = auth_result.client }
     local resp = req:render({ json = result })
     return resp
 end
