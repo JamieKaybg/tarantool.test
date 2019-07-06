@@ -2,7 +2,7 @@ local http = require('http.server')
 local json = require("json")
 local log = require('log')
 --local crypto = require('crypto')
-local client = require 'client'
+local client = require 'client'.model()
 
 local function unauthorized()
     return {
@@ -23,21 +23,21 @@ local function authorize(req)
     --apikey = crypto.digest.sha256(apikey)
     local params = {}
     params[1] = apikey
-    local client = box.execute("SELECT * FROM clients WHERE apikey=$1", params)
+    local db_client = box.execute("SELECT * FROM clients WHERE apikey=$1", params)
     
-    if client.rows[1] == nil then
+    if db_client.rows[1] == nil then
         log.error('[%s] ApiKey %s neeksistē', req.peer.host, apikey)
         return unauthorized()
     end
 
-    if client.rows[1][client.ENABLED] == 0 then
-        log.error('[%s] Klients %s ir atspējots', req.peer.host, client.rows[1][2])
+    if db_client.rows[1][client.ENABLED] == 0 then
+        log.error('[%s] Klients %s ir atspējots', req.peer.host, db_client.rows[1][client.NAME])
         return unauthorized()
     end
 
     return { 
         status = 200, 
-        client = client.rows[1] 
+        client = db_client.rows[1] 
     }
 end
 
