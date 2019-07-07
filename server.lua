@@ -1,7 +1,6 @@
 local http = require('http.server')
 local json = require("json")
 local log = require('log')
---local crypto = require('crypto')
 local client = require 'client'.model()
 
 local function unauthorized()
@@ -20,7 +19,6 @@ local function authorize(req)
         return unauthorized()
     end
 
-    --apikey = crypto.digest.sha256(apikey)
     local params = {}
     params[1] = apikey
     local db_client = box.execute("SELECT * FROM clients WHERE apikey=$1", params)
@@ -41,16 +39,23 @@ local function authorize(req)
     }
 end
 
-local function home_handler(req)
+local function client_handler(req)
     local auth_result = authorize(req)
     if auth_result.status ~= 200 then
         return auth_result
     end
-    local result = { dati = auth_result.client }
+    local result = { client = auth_result.client }
     local resp = req:render({ json = result })
     return resp
 end
 
-local httpd = http.new('localhost', 8080, { log_requests = false })
-httpd:route({ path = '/', method = 'GET' }, home_handler)
+local httpd = http.new(nil, 8080, { 
+    log_requests = false, 
+    charset = "utf-8", 
+    app_dir = "./wwwroot" 
+})
+
+httpd:route({ path = "/" }, function(req) return req:redirect_to('/admin/') end)
+httpd:route({ path = '/admin/', file = 'index.html' })
+httpd:route({ path = '/client/', method = 'GET' }, client_handler)
 httpd:start()
